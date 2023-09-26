@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Guess The Cat-Advanced</title>
+    <style>
+      .breed-box {
+        border: 2px solid black;
+        padding: 5px;
+        margin: 5px;
+        width: 16%;
+        height: 300px;
+        float: left;
+      }
+
+      .class2 {
+        clear: both;
+        width: 100%;
+        height: 100px;
+      }
+      #hiddenDiv {
+        height: 5%;
+        border: 5px outset #33caff;
+        color: #33caff;
+      }
+      #h1a {
+        text-align: center;
+      }
+      #h2a {
+        text-indent: 200px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 id="h1a">Guess The Cat (Advanced)</h1>
+    <h2 id="h2a">
+         &emsp;&emsp;<span style="text-align: right"
+        >&emsp;&emsp; by Shivang Sinha</span
+      >
+    </h2>
+    <br />
+
+    <div id="hiddenDiv" style="display: none">
+      <h3 id="result"></h3>
+    </div>
+
+    <div id="breeds-container"></div>
+
+    <div class="class2" id="hdiv" style="display: none">
+      Is your cat
+      <select id="temperament-select" menuPlacement="bottom"></select>
+      ? <button id="ask">Ask</button><button id="hint">Hint</button> <br />Your
+      cat is
+      <select id="name-select"></select>
+      <button id="guess">Guess</button> <br /><button id="quitGamebtn">
+        QUIT
+      </button>
+    </div>
+
+    <div>Number of breeds in the game:</div>
+    <div class="container">
+      <form id="form">
+        <input type="radio" name="breedNo" value="5" id="5" />
+        <label for="5">5</label>
+        <input type="radio" name="breedNo" value="10" id="10" />
+        <label for="10">10</label>
+        <input type="radio" name="breedNo" value="15" id="15" />
+        <label for="15">15</label>
+        <input type="radio" name="breedNo" value="20" id="20" />
+        <label for="20">20</label>
+        <button id="submit-btn">New Game</button>
+      </form>
+      <h3>Breeds | Best Score</h3>
+      <p>
+        &nbsp; 5 &nbsp;&nbsp;&emsp;&emsp;|&emsp;&emsp;<span
+          id="5bestScore"
+        ></span>
+      </p>
+      <p>&nbsp; 10 &emsp;&emsp;|&emsp;&emsp;<span id="10bestScore"></span></p>
+      <p>
+        &nbsp; 15 &emsp;&emsp;|&emsp;&emsp;<span id="15bestScore" None></span>
+      </p>
+      <p>
+        &nbsp; 20 &emsp;&emsp;|&emsp;&emsp;<span id="20bestScore" None></span>
+      </p>
+    </div>
+
+    <script>
+      //Global declarations
+      const breedsContainer = document.getElementById("breeds-container");
+      const temperamentSelect = document.getElementById("temperament-select");
+      const nameSelect = document.getElementById("name-select");
+      const askButton = document.getElementById("ask");
+      const guessButton = document.getElementById("guess");
+      let clickCount = 0;
+      let bScore;
+      let numberBreed = 0;
+      let countSame1 = 0;
+      let countSame2 = 0;
+      let countSame3 = 0;
+      let word1;
+      let word2;
+      let word3;
+
+      window.onload = function () {
+        document.getElementById("5bestScore").innerHTML = localStorage.getItem(
+          "bestScoreB5Advanced"
+        );
+        document.getElementById("10bestScore").innerHTML = localStorage.getItem(
+          "bestScoreB10Advanced"
+        );
+        document.getElementById("15bestScore").innerHTML = localStorage.getItem(
+          "bestScoreB15Advanced"
+        );
+        document.getElementById("20bestScore").innerHTML = localStorage.getItem(
+          "bestScoreB20Advanced"
+        );
+      };
+
+      //Handle Select Number of breed in game
+      const form = document.getElementById("form");
+      if (form) {
+        // debugger;
+        const radioButtons = form.elements.breedNo;
+        const submitBtn = document.getElementById("submit-btn");
+
+        for (let i = 0; i < radioButtons.length; i++) {
+          radioButtons[i].addEventListener("change", function () {
+            numberBreed = this.value;
+            console.log(`Selected value: ${numberBreed}`);
+          });
+        }
+        submitBtn.addEventListener("click", function (event) {
+          clickCount += 1;
+          if (clickCount >= 2) {
+            //window.history.pushState({}, "", "/");
+            reload();
+          }
+          event.preventDefault();
+          document.querySelector("#breeds-container").innerHTML = "";
+          nameSelect.innerHTML = "";
+          temperamentSelect.innerHTML = "";
+          document.getElementById("hiddenDiv").style.display = "none";
+          //document.getElementById("bestScore").innerHTML = localStorage.getItem("Score");
+          document.getElementById("hdiv").style.display = "block";
+
+          for (let i = 0; i < radioButtons.length; i++) {
+            if (radioButtons[i].checked) {
+              // debugger;
+              numberBreed = parseInt(radioButtons[i].value);
+              break;
+            }
+          }
+          // Fetch all cat breeds from the API
+          fetch("https://api.thecatapi.com/v1/breeds")
+            .then((response) => response.json())
+            .then((breeds) => {
+              // Randomly select breeds
+              const selectedBreeds = [];
+              //  debugger;
+              while (selectedBreeds.length < numberBreed) {
+                const randomIndex = Math.floor(Math.random() * breeds.length);
+                const breed = breeds[randomIndex];
+                if (!selectedBreeds.includes(breed)) {
+                  selectedBreeds.push(breed);
+                }
+              }
+              // Randomly select one breed as the computer's chosen breed
+              const computerSelectedBreed =
+                selectedBreeds[
+                  Math.floor(Math.random() * selectedBreeds.length)
+                ];
+
+              // Display the name and temperament of all breeds
+              selectedBreeds.forEach((breed) => {
+                const imageUrl = `https://api.thecatapi.com/v1/images/search?breed_ids=${breed.id}`;
+                fetch(imageUrl)
+                  .then((response) => response.json())
+                  .then((images) => {
+                    const image = images[0].url;
+                    const breedBox = document.createElement("div");
+                    breedBox.classList.add("breed-box");
+                    breedBox.classList.add(breed.id);
+
+                    breedBox.innerHTML = `<div style="display:flex;justify-content:space-between; align-items:center;"><h3>${breed.name}</h3> <span id=${breed.id}  style="display:none;">&#10008;</span></div><img src="${image}" alt="${breed.name}" width="210" height="150"><p>${breed.temperament}</p>`;
+                    breedsContainer.appendChild(breedBox);
+                  });
+              });
+
+              // Create a dropdown with all unique temperaments
+              const temperaments = new Set();
+              selectedBreeds.forEach((breed) => {
+                breed.temperament
+                  .split(", ")
+                  .forEach((word) => temperaments.add(word));
+              });
+              temperaments.forEach((temperament) => {
+                const optionTemperament = document.createElement("option");
+                optionTemperament.value = temperament;
+                optionTemperament.innerText = temperament;
+                temperamentSelect.appendChild(optionTemperament);
+              });
+
+              // Create a dropdown with all breeds name
+              selectedBreeds.forEach((breed) => {
+                const optionName = document.createElement("option");
+                optionName.value = breed.name;
+                optionName.innerText = breed.name;
+                nameSelect.appendChild(optionName);
+              });
+              //Handle the Hint button
+              const hintbtn = document.getElementById("hint");
+              hintbtn.addEventListener("click", function () {
+                // debugger;
+
+                let arrT = computerSelectedBreed.temperament.split(",");
+
+                let randomIndex = Math.floor(Math.random() * arrT.length);
+                let hintTemperament = arrT[randomIndex];
+
+                alert(`Ask if the breed is ${hintTemperament}`);
+              });
+              // Handle the button ask
+              let countAsk = 0;
+              askButton.addEventListener("click", () => {
+                countAsk++;
+                // debugger;
+
+                const selectedTemperament = temperamentSelect.value;
+
+                let arr = computerSelectedBreed.temperament.split(",");
+                console.log(arr);
+                let found = arr.find(function (element) {
+                  return (
+                    element.trim().toLowerCase() ===
+                    selectedTemperament.trim().toLowerCase()
+                  );
+                });
+                if (found) {
+                  alert(`Yes, my cat is ${selectedTemperament}`);
+                } else {
+                  alert(`No, my cat is not ${selectedTemperament}`);
+
+                  const breedBoxes =
+                    document.getElementsByClassName("breed-box");
+                  const selected = selectedTemperament;
+                  for (let i = 0; i < breedBoxes.length; i++) {
+                    let breedBox = breedBoxes[i];
+                    let match = false;
+                    for (let j = 0; j < breedBox.children.length; j++) {
+                      let child = breedBox.children[j];
+                      if (child.innerHTML.includes(selected)) {
+                        match = true;
+                        child.innerHTML = child.innerHTML.replace(
+                          selected,
+                          "<span style='text-decoration: line-through;'>" +
+                            selected +
+                            "</span>"
+                        );
+                        //child.style.textDecoration = "line-through";
+                        //countSame2++;
+                        //word2=selected;
+                      }
+                    }
+                    if (match) {
+                      //breedBox.className = "breed-boxCross";
+                      var heading = breedBox.getElementsByTagName("h3")[0];
+                      heading.style.textDecoration = "line-through";
+                      //var paragraph = breedBox.getElementsByTagName("p")[0];
+                      //paragraph.style.textDecoration = "line-through";
+
+                      breedBox.style.color = "#FFFFFF";
+                      breedBox.style.backgroundColor = "#e51b5f";
+                      //breedBox.style.textDecoration = "line-through";
+                      const selectedId = breedBox
+                        .getAttribute("class")
+                        .split(" ")[1];
+                      document.getElementById(selectedId).style.display =
+                        "block";
+                      const selectT =
+                        document.getElementById("temperament-select");
+                      const selectedTIndex = selectT.selectedIndex;
+                      selectT.remove(selectedTIndex);
+                    }
+                  }
+
+                  //countSame3=numberBreed-countSame2;
+                  //console.log("second same count: ",countSame2)
+                  //console.log("second same word: ",word2)
+                  //console.log("third same count difference: ",countSame3)
+                }
+              });
+
+              // Handle the button guess
+              let countGuess = 0;
+              guessButton.addEventListener("click", () => {
+                // debugger;
+                countGuess++;
+
+                const selectedName = nameSelect.value;
+                if (selectedName == computerSelectedBreed.name) {
+                  // debugger;
+                  document.getElementById("result").innerHTML =
+                    "You Win :) <br> You Asked " +
+                    countAsk +
+                    " question(s) and made " +
+                    countGuess +
+                    " guess(es).";
+                  const showdiv = document.getElementById("hiddenDiv");
+                  showdiv.style.display = "block";
+
+                  //Handling Best Score
+                  bScore = countGuess + countAsk;
+                  if (numberBreed == 5) {
+                    if (
+                      localStorage.getItem("bestScoreB5Advanced") === undefined
+                    ) {
+                      localStorage.setItem("bestScoreB5Advanced", 0);
+                      localStorage.setItem("bestScoreB5Advanced", bScore);
+                    }
+                    if (localStorage.getItem("bestScoreB5Advanced") == 0) {
+                      localStorage.setItem("bestScoreB5Advanced", 0);
+                      localStorage.setItem("bestScoreB5Advanced", bScore);
+                      document.getElementById("5bestScore").innerHTML = bScore;
+                    }
+
+                    if (localStorage.getItem("bestScoreB5Advanced") > bScore) {
+                      localStorage.setItem("bestScoreB5Advanced", bScore);
+                      document.getElementById("5bestScore").innerHTML = bScore;
+                    }
+                  } else if (numberBreed == 10) {
+                    if (localStorage.getItem("bestScoreB10Advanced") === null) {
+                      localStorage.setItem("bestScoreB10Advanced", 0);
+                      localStorage.setItem("bestScoreB10Advanced", bScore);
+                    }
+                    if (localStorage.getItem("bestScoreB10Advanced") == 0) {
+                      localStorage.setItem("bestScoreB10Advanced", 0);
+                      localStorage.setItem("bestScoreB10Advanced", bScore);
+                      document.getElementById("10bestScore").innerHTML = bScore;
+                    }
+                    if (localStorage.getItem("bestScoreB10Advanced") > bScore) {
+                      localStorage.setItem("bestScoreB10Advanced", bScore);
+                      document.getElementById("10bestScore").innerHTML = bScore;
+                    }
+                  } else if (numberBreed == 15) {
+                    if (localStorage.getItem("bestScoreB15Advanced") === null) {
+                      localStorage.setItem("bestScoreB15Advanced", 0);
+                      localStorage.setItem("bestScoreB15Advanced", bScore);
+                    }
+                    if (localStorage.getItem("bestScoreB15Advanced") == 0) {
+                      localStorage.setItem("bestScoreB15Advanced", 0);
+                      localStorage.setItem("bestScoreB15Advanced", bScore);
+                      document.getElementById("15bestScore").innerHTML = bScore;
+                    }
+                    if (localStorage.getItem("bestScoreB15Advanced") > bScore) {
+                      localStorage.setItem("bestScoreB15Advanced", bScore);
+                      document.getElementById("15bestScore").innerHTML = bScore;
+                    }
+                  } else if (numberBreed == 20) {
+                    if (localStorage.getItem("bestScoreB20Advanced") === null) {
+                      localStorage.setItem("bestScoreB20Advanced", 0);
+                      localStorage.setItem("bestScoreB20Advanced", bScore);
+                    }
+                    if (localStorage.getItem("bestScoreB20Advanced") == 0) {
+                      localStorage.setItem("bestScoreB20Advanced", 0);
+                      localStorage.setItem("bestScoreB20Advanced", bScore);
+                      document.getElementById("20bestScore").innerHTML = bScore;
+                    }
+                    if (localStorage.getItem("bestScoreB20Advanced") > bScore) {
+                      localStorage.setItem("bestScoreB20Advanced", bScore);
+                      document.getElementById("20bestScore").innerHTML = bScore;
+                    }
+                  }
+
+                  //Handling color green
+                  // debugger;
+                  const breedBoxes =
+                    document.getElementsByClassName("breed-box");
+                  const selected = selectedName;
+                  for (let i = 0; i < breedBoxes.length; i++) {
+                    let breedBox = breedBoxes[i];
+                    for (let j = 0; j < breedBox.children.length; j++) {
+                      let child = breedBox.children[j];
+                      if (child.innerHTML.includes(selected)) {
+                        //breedBox.style.color = "green";
+                        //breedBox.style.backgroundColor = "#ff0123";
+                        //breedBox = document.getElementsByClassName("breed-boxC")
+                        breedBox.style.backgroundColor = "#35a868";
+                        breedBox.style.color = "white";
+                        const selectedId = breedBox
+                          .getAttribute("class")
+                          .split(" ")[1];
+
+                        document.getElementById(selectedId).innerHTML =
+                          "&#10004;";
+                        document.getElementById(selectedId).style.display =
+                          "block";
+                      }
+                    }
+                  }
+
+                  alert(`My cat is ${selectedName}`);
+                } else {
+                  document.getElementById("result").innerHTML =
+                    "You Asked " +
+                    countAsk +
+                    " question(s) and made " +
+                    countGuess +
+                    " guess(es).";
+                  alert(`No, My cat is not ${selectedName}`);
+                  const selectN = document.getElementById("name-select");
+                  const selectedNIndex = selectN.selectedIndex;
+                  selectN.remove(selectedNIndex);
+                  const breedBoxes =
+                    document.getElementsByClassName("breed-box");
+                  const selected = selectedName;
+                  for (let i = 0; i < breedBoxes.length; i++) {
+                    let breedBox = breedBoxes[i];
+                    let match = false;
+                    for (let j = 0; j < breedBox.children.length; j++) {
+                      let child = breedBox.children[j];
+                      if (child.innerHTML.includes(selected)) {
+                        match = true;
+                      }
+                    }
+                    if (match) {
+                      //breedBox.style.color = "#999999";
+                      //breedBox.style.color = "white";
+                      //breedBox.style.backgroundColor = "#ff0055";
+                      //breedBox.className = "breed-boxCross";
+                      var heading = breedBox.getElementsByTagName("h3")[0];
+                      heading.style.textDecoration = "line-through";
+                      breedBox.style.color = "#FFFFFF";
+                      breedBox.style.backgroundColor = "#e51b5f";
+
+                      const selectedId = breedBox
+                        .getAttribute("class")
+                        .split(" ")[1];
+                      document.getElementById(selectedId).style.display =
+                        "block";
+                    }
+                  }
+                }
+              });
+
+              //Handle Quit Game
+              const loosebtn = document.getElementById("quitGamebtn");
+              const showdiv = document.getElementById("hiddenDiv");
+              loosebtn.addEventListener("click", function () {
+                document.getElementById("result").innerHTML =
+                  "You did not guess the breed (: <br> You Asked " +
+                  countAsk +
+                  " question(s) and made " +
+                  countGuess +
+                  " guess(es). <br> Play again soon!";
+                showdiv.style.display = "block";
+              });
+            });
+        });
+      }
+    </script>
+  </body>
+</html>
